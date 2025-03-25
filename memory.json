@@ -581,7 +581,13 @@
       "completed_at": null,
       "result": null,
       "parent_task_id": null,
-      "subtasks": [],
+      "subtasks": [
+        "subtask_task_1742903643_0_0",
+        "subtask_task_1742903643_0_1",
+        "subtask_task_1742903643_0_2",
+        "subtask_task_1742903643_0_3",
+        "subtask_task_1742903643_0_4"
+      ],
       "tool_calls": []
     },
     {
@@ -725,6 +731,66 @@
       "completed_at": null,
       "result": null,
       "parent_task_id": null,
+      "subtasks": [],
+      "tool_calls": []
+    },
+    {
+      "id": "subtask_task_1742903643_0_0",
+      "description": "Collect and analyze energy usage data from utility providers for residential, commercial, and industrial sectors. Identify top sources of emissions and opportunities for reduction.",
+      "status": "pending",
+      "priority": 5,
+      "created_at": "2025-03-25 04:54:26.250873",
+      "completed_at": null,
+      "result": null,
+      "parent_task_id": "task_1742903643_0",
+      "subtasks": [],
+      "tool_calls": []
+    },
+    {
+      "id": "subtask_task_1742903643_0_1",
+      "description": "Survey transportation patterns and vehicle fleet composition. Quantify emissions from private vehicles, public transit, and freight. Recommend strategies to reduce vehicle miles traveled and electrify transportation.",
+      "status": "pending",
+      "priority": 4,
+      "created_at": "2025-03-25 04:54:26.253203",
+      "completed_at": null,
+      "result": null,
+      "parent_task_id": "task_1742903643_0",
+      "subtasks": [],
+      "tool_calls": []
+    },
+    {
+      "id": "subtask_task_1742903643_0_2",
+      "description": "Assess emissions from existing building stock, including electricity usage, heating fuels, and refrigerants. Develop policies to improve efficiency of new construction and retrofit existing buildings.",
+      "status": "pending",
+      "priority": 4,
+      "created_at": "2025-03-25 04:54:26.255011",
+      "completed_at": null,
+      "result": null,
+      "parent_task_id": "task_1742903643_0",
+      "subtasks": [],
+      "tool_calls": []
+    },
+    {
+      "id": "subtask_task_1742903643_0_3",
+      "description": "Quantify waste-related emissions from landfills, wastewater treatment, and waste incineration. Implement waste reduction, composting and recycling programs to minimize waste emissions.",
+      "status": "pending",
+      "priority": 3,
+      "created_at": "2025-03-25 04:54:26.256607",
+      "completed_at": null,
+      "result": null,
+      "parent_task_id": "task_1742903643_0",
+      "subtasks": [],
+      "tool_calls": []
+    },
+    {
+      "id": "subtask_task_1742903643_0_4",
+      "description": "Engage community stakeholders to gather input, educate residents, and build support for climate action. Partner with local organizations to promote sustainable behaviors and participation in emissions reduction efforts.",
+      "status": "pending",
+      "priority": 4,
+      "created_at": "2025-03-25 04:54:26.258169",
+      "completed_at": null,
+      "result": null,
+      "parent_task_id": "task_1742903643_0",
       "subtasks": [],
       "tool_calls": []
     }
