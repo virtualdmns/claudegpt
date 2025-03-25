@@ -5,7 +5,14 @@ Advanced example usage of the ClaudeGPT system with custom tools and callbacks
 import asyncio
 import logging
 import json
+import sys
+import os
 from datetime import datetime
+
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now import ClaudeGPT
 from claudeGPT import ClaudeGPT, Tool
 
 # Configure logging
@@ -84,14 +91,98 @@ class ResearchTool(Tool):
             "timestamp": datetime.now().isoformat()
         }
 
+class DataAnalysisTool(Tool):
+    """Tool to analyze data"""
+    
+    def __init__(self):
+        super().__init__(
+            name="analyze_data",
+            description="Analyze data and provide insights",
+            parameters={
+                "data_type": {
+                    "type": "string",
+                    "description": "Type of data to analyze (e.g., 'demographics', 'climate', 'economic')"
+                },
+                "region": {
+                    "type": "string",
+                    "description": "Geographic region for the data"
+                },
+                "time_period": {
+                    "type": "string",
+                    "description": "Time period for the data (e.g., '2020-2023', 'last 5 years')",
+                    "default": "last 5 years"
+                }
+            }
+        )
+    
+    async def execute(self, **kwargs):
+        """Simulate data analysis"""
+        data_type = kwargs.get("data_type", "")
+        region = kwargs.get("region", "")
+        time_period = kwargs.get("time_period", "last 5 years")
+        
+        # Simulate different analysis results based on data type
+        if data_type.lower() == "demographics":
+            return {
+                "population": 250000,
+                "median_age": 35.4,
+                "growth_rate": "1.2%",
+                "density": "1,200 people per square mile",
+                "insights": [
+                    "Population is growing faster than the national average",
+                    "Significant increase in 25-34 age group over the last 3 years",
+                    "Declining birth rate consistent with national trends"
+                ]
+            }
+        elif data_type.lower() == "climate":
+            return {
+                "average_temperature": 68.5,
+                "precipitation": "42 inches annually",
+                "extreme_events": [
+                    {"year": 2022, "event": "Hurricane", "impact": "Moderate"},
+                    {"year": 2021, "event": "Drought", "impact": "Severe"},
+                    {"year": 2020, "event": "Flooding", "impact": "Minimal"}
+                ],
+                "trends": [
+                    "Average temperature increased 1.2°F over the last decade",
+                    "More frequent extreme precipitation events",
+                    "Longer dry seasons with more intense rainfall periods"
+                ]
+            }
+        elif data_type.lower() == "economic":
+            return {
+                "gdp": "$12.5 billion",
+                "unemployment": "4.2%",
+                "major_industries": ["Technology", "Healthcare", "Manufacturing"],
+                "median_income": "$65,000",
+                "trends": [
+                    "Technology sector growing at 8% annually",
+                    "Manufacturing jobs decreased by 3% over the last 5 years",
+                    "Wage growth outpacing national average by 1.5%"
+                ]
+            }
+        else:
+            return {
+                "message": f"No specific analysis available for {data_type}",
+                "generic_insights": [
+                    f"Data for {region} shows typical patterns for the region",
+                    f"No significant anomalies detected in the {time_period} period",
+                    "More specific data type would yield better insights"
+                ]
+            }
+
 # Define custom callbacks
 async def on_task_complete(task_id, result):
     """Callback when a task is completed"""
-    logger.info(f"Task {task_id} completed with result: {json.dumps(result, indent=2)}")
+    logger.info(f"Task {task_id} completed with result: {json.dumps(result, indent=2)[:200]}...")
 
 async def on_reflection(agent_type, reflection):
     """Callback when an agent reflects"""
-    logger.info(f"{agent_type} reflection: {reflection}")
+    logger.info(f"{agent_type.upper()} reflection: {reflection[:100]}...")
+
+async def on_tasks_added(task_ids, source):
+    """Callback when new tasks are added"""
+    logger.info(f"Added {len(task_ids)} new tasks from {source}")
 
 async def run_advanced_example():
     """Run an advanced example with ClaudeGPT"""
@@ -99,10 +190,11 @@ async def run_advanced_example():
     
     # Initialize system with custom tools and callbacks
     system = ClaudeGPT(
-        tools=[WeatherTool(), ResearchTool()],
+        tools=[WeatherTool(), ResearchTool(), DataAnalysisTool()],
         callbacks={
             "on_task_complete": on_task_complete,
-            "on_reflection": on_reflection
+            "on_reflection": on_reflection,
+            "on_tasks_added": on_tasks_added
         },
         verbose=True
     )

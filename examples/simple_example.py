@@ -4,14 +4,18 @@ Simple example usage of the ClaudeGPT system
 
 import asyncio
 import logging
-from claudeGPT import ClaudeGPT
+import sys
+import os
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now import ClaudeGPT
+from claudeGPT import ClaudeGPT, ColoredFormatter
+
+# Configure logging with colors and no truncation
 logger = logging.getLogger("ClaudeGPT.simple_example")
+# The root logger configuration from claudeGPT.py will be inherited
 
 async def run_simple_example():
     """Run a simple example with ClaudeGPT"""

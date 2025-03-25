@@ -25,15 +25,36 @@ import anthropic
 import openai
 from dotenv import load_dotenv
 
+# Add colored logging
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter to add colors to log messages based on level"""
+    
+    COLORS = {
+        'DEBUG': '\033[94m',  # Blue
+        'INFO': '\033[92m',   # Green
+        'WARNING': '\033[93m', # Yellow
+        'ERROR': '\033[91m',   # Red
+        'CRITICAL': '\033[91m\033[1m', # Bold Red
+        'RESET': '\033[0m'    # Reset
+    }
+    
+    def format(self, record):
+        log_message = super().format(record)
+        if record.levelname in self.COLORS:
+            return f"{self.COLORS[record.levelname]}{log_message}{self.COLORS['RESET']}"
+        return log_message
+
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("claudegpt.log"),
-        logging.StreamHandler()
-    ]
-)
+formatter = ColoredFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+file_handler = logging.FileHandler("claudegpt.log")
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
+
+# Remove truncation limit for log messages
+logging._defaultFormatter.max_length = None
 logger = logging.getLogger("ClaudeGPT")
 
 # Load environment variables
@@ -941,7 +962,7 @@ class TaskManager:
         is_complex = await self._is_task_complex(task)
         
         if is_complex:
-            logger.info(f"Breaking down complex task: {task.description}")
+            logger.info(f"\n{'-'*100}\nBREAKING DOWN COMPLEX TASK: {task.description}\n{'-'*100}")
             subtasks = await self.claude.create_subtasks(task)
             
             if subtasks:
@@ -954,9 +975,10 @@ class TaskManager:
                     subtask.status = "in_progress"
                     self.memory.update_task(subtask.id, {"status": "in_progress"})
                     
-                    logger.info(f"Executing subtask: {subtask.description}")
+                    logger.info(f"\n{'-'*80}\nEXECUTING SUBTASK: {subtask.description}\n{'-'*80}")
                     result = await self.claude.execute_task(subtask)
                     subtask_results.append(f"Subtask: {subtask.description}\nResult: {result}")
+                    logger.info(f"\nSUBTASK COMPLETED: {subtask.description}\n")
                 
                 # Combine subtask results
                 combined_result = f"Task was broken down into {len(subtasks)} subtasks:\n\n"
@@ -1119,7 +1141,7 @@ class ClaudeGPT:
         if not self.claude.state.current_task and self.claude.state.task_queue:
             self.claude.state.current_task = self.claude.state.task_queue.pop(0)
             self.claude.state.status = "executing"
-            logger.info(f"Claude starting task: {self.claude.state.current_task.description}")
+            logger.info(f"\n{'*'*100}\nCLAUDE STARTING TASK: {self.claude.state.current_task.description}\n{'*'*100}")
             
             # Call callback if provided
             if "on_task_start" in self.callbacks:
@@ -1129,8 +1151,8 @@ class ClaudeGPT:
         if self.claude.state.current_task:
             # Execute the task
             result, evaluation = await self.task_manager.execute_task(self.claude.state.current_task)
-            logger.info(f"Claude executed task with result: {result[:100]}...")
-            logger.info(f"GPT evaluated task: {evaluation[:100]}...")
+            logger.info(f"CLAUDE TASK RESULT:\n{'='*80}\n{result}\n{'='*80}")
+            logger.info(f"GPT EVALUATION:\n{'='*80}\n{evaluation}\n{'='*80}")
             
             # Call callback if provided
             if "on_task_complete" in self.callbacks:
@@ -1151,7 +1173,7 @@ class ClaudeGPT:
             
             # Get reflection from GPT
             reflection = await self.gpt.reflect_on(self.claude.state)
-            logger.info(f"GPT provided reflection: {reflection[:100]}...")
+            logger.info(f"GPT REFLECTION:\n{'='*80}\n{reflection}\n{'='*80}")
             
             # Call callback if provided
             if "on_reflection" in self.callbacks:
@@ -1159,7 +1181,7 @@ class ClaudeGPT:
             
             # Claude processes the reflection
             response = await self.claude.process_reflection(reflection)
-            logger.info(f"Claude processed reflection: {response[:100]}...")
+            logger.info(f"CLAUDE RESPONSE TO REFLECTION:\n{'='*80}\n{response}\n{'='*80}")
             
             # Call callback if provided
             if "on_reflection_response" in self.callbacks:
@@ -1203,7 +1225,7 @@ class ClaudeGPT:
     async def run(self, cycles: int = 1):
         """Run multiple interaction cycles"""
         for i in range(cycles):
-            logger.info(f"Running cycle {i+1}/{cycles}")
+            logger.info(f"\n{'#'*100}\nRUNNING CYCLE {i+1}/{cycles}\n{'#'*100}")
             await self.run_interaction_cycle()
             
             # Call callback if provided

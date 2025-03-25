@@ -5,7 +5,14 @@ Example of creating and using custom tools with ClaudeGPT
 import asyncio
 import logging
 import json
+import sys
+import os
 from datetime import datetime
+
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now import ClaudeGPT
 from claudeGPT import ClaudeGPT, Tool
 
 # Configure logging
