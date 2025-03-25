@@ -18,12 +18,14 @@ import time
 import asyncio
 import logging
 import uuid
+import random
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 import anthropic
 import openai
 from dotenv import load_dotenv
+from persona_loader import Persona
 
 # Add colored logging
 class ColoredFormatter(logging.Formatter):
@@ -452,6 +454,10 @@ class ClaudeAgent:
     
     async def execute_task(self, task: Task) -> str:
         """Execute a specific task"""
+        # Get persona for logging
+        persona = Persona()
+        logger.info(f"{persona.get_mood('executing')} Executing: {task.description}")
+        
         # Get recent task results for context
         recent_tasks = self.memory.get_tasks_by_status("completed")[-5:]
         recent_results = []
@@ -509,6 +515,7 @@ class ClaudeAgent:
                 if tool:
                     # Execute the tool
                     try:
+                        logger.info(f"{persona.get_mood('executing')} Using tool: {tool_name}")
                         tool_result = await tool.execute(**tool_args)
                         tool_results.append({
                             "tool": tool_name,
@@ -516,6 +523,7 @@ class ClaudeAgent:
                             "result": tool_result
                         })
                     except Exception as e:
+                        logger.error(f"{persona.get_mood('error')} Tool execution failed: {str(e)}")
                         tool_results.append({
                             "tool": tool_name,
                             "args": tool_args,
@@ -565,6 +573,8 @@ class ClaudeAgent:
         self.memory.add_task_result(task.id, result)
         
         # Log the execution
+        success_mood = persona.get_mood("success")
+        logger.info(f"{success_mood} Task completed: {task.description}")
         self.memory.add_interaction("claude", f"Executed task: {task.description}", result[:500] + "..." if len(result) > 500 else result)
         
         return result
@@ -1030,7 +1040,15 @@ class TaskManager:
         response = await self.claude.generate_response(prompt, temperature=0.1)
         response_content = response["content"]
         
-        return response_content.strip().lower() in ["yes", "true", "1"]
+        # Get persona for logging
+        persona = Persona()
+        
+        if response_content.strip().lower() in ["yes", "true", "1"]:
+            logger.info(f"{persona.get_mood('planning')} This task requires strategic decomposition.")
+            return True
+        else:
+            logger.info(f"{persona.get_mood('executing')} This task can be executed directly.")
+            return False
     
     async def generate_follow_up_tasks(self, task: Task, result: str) -> List[Task]:
         """Generate follow-up tasks based on a completed task"""
@@ -1101,13 +1119,15 @@ class ClaudeGPT:
         self.task_manager = TaskManager(self.memory, self.claude, self.gpt)
         self.goal = ""
         self.context = ""
+        self.persona = Persona()
         
         if self.verbose:
             logger.setLevel(logging.DEBUG)
     
     async def set_goal(self, goal: str, context: str = ""):
         """Set a new goal for the system"""
-        logger.info(f"Setting new goal: {goal}")
+        greeting = self.persona.get("greeting")
+        logger.info(f"{greeting} Setting new goal: {goal}")
         self.goal = goal
         self.context = context
         
@@ -1119,6 +1139,8 @@ class ClaudeGPT:
         self.claude.state.goals = [goal]
         
         # Generate initial tasks
+        planning_mood = self.persona.get_mood("planning")
+        logger.info(f"{planning_mood} Generating tasks for goal: {goal}")
         tasks = await self.task_manager.create_initial_tasks(goal, self.memory.get_context())
         
         # Prioritize tasks
@@ -1127,7 +1149,8 @@ class ClaudeGPT:
         # Add tasks to Claude's queue
         self.claude.state.task_queue = prioritized_tasks
         
-        logger.info(f"Generated {len(tasks)} tasks for goal: {goal}")
+        executing_mood = self.persona.get_mood("executing")
+        logger.info(f"Generated {len(tasks)} tasks for goal: {goal}. {executing_mood}")
         
         # Call callback if provided
         if "on_goal_set" in self.callbacks:
@@ -1135,13 +1158,21 @@ class ClaudeGPT:
     
     async def run_interaction_cycle(self):
         """Run a single interaction cycle between Claude and GPT"""
-        logger.info("Starting interaction cycle")
+        # Get a random mood for cycle start
+        idle_mood = self.persona.random_mood_with_key(exclude="executing")[1]
+        logger.info(f"{self.persona.get('title')} initiates a new cycle. {idle_mood}")
         
         # If Claude has no current task, get one from the queue
         if not self.claude.state.current_task and self.claude.state.task_queue:
             self.claude.state.current_task = self.claude.state.task_queue.pop(0)
             self.claude.state.status = "executing"
-            logger.info(f"\n{'*'*100}\nCLAUDE STARTING TASK: {self.claude.state.current_task.description}\n{'*'*100}")
+            
+            # Get a random executing-type mood
+            executing_moods = ["executing", "dramatic", "excited"]
+            mood_key = random.choice(executing_moods)
+            mood = self.persona.get_mood(mood_key)
+            
+            logger.info(f"\n{'*'*100}\nCLAUDE STARTING TASK: {self.claude.state.current_task.description}\n{mood}\n{'*'*100}")
             
             # Call callback if provided
             if "on_task_start" in self.callbacks:
@@ -1151,8 +1182,18 @@ class ClaudeGPT:
         if self.claude.state.current_task:
             # Execute the task
             result, evaluation = await self.task_manager.execute_task(self.claude.state.current_task)
-            logger.info(f"CLAUDE TASK RESULT:\n{'='*80}\n{result}\n{'='*80}")
-            logger.info(f"GPT EVALUATION:\n{'='*80}\n{evaluation}\n{'='*80}")
+            
+            # Get a random success-type mood
+            success_moods = ["success", "smug", "transcendent", "dramatic"]
+            success_mood = self.persona.get_mood(random.choice(success_moods))
+            
+            logger.info(f"CLAUDE TASK RESULT:\n{'='*80}\n{success_mood}\n{result}\n{'='*80}")
+            
+            # Get a random mood for GPT evaluation
+            gpt_moods = ["sassy", "philosophical", "poetic", "humble"]
+            gpt_mood = self.persona.get_mood(random.choice(gpt_moods))
+            
+            logger.info(f"GPT EVALUATION:\n{'='*80}\n{gpt_mood}\n{evaluation}\n{'='*80}")
             
             # Call callback if provided
             if "on_task_complete" in self.callbacks:
@@ -1161,7 +1202,8 @@ class ClaudeGPT:
             # Generate follow-up tasks
             follow_up_tasks = await self.task_manager.generate_follow_up_tasks(self.claude.state.current_task, result)
             if follow_up_tasks:
-                logger.info(f"Generated {len(follow_up_tasks)} follow-up tasks")
+                planning_mood = self.persona.get_mood("planning")
+                logger.info(f"Generated {len(follow_up_tasks)} follow-up tasks. {planning_mood}")
                 # Add follow-up tasks to queue
                 self.claude.state.task_queue.extend(follow_up_tasks)
                 # Re-prioritize the queue
@@ -1173,7 +1215,12 @@ class ClaudeGPT:
             
             # Get reflection from GPT
             reflection = await self.gpt.reflect_on(self.claude.state)
-            logger.info(f"GPT REFLECTION:\n{'='*80}\n{reflection}\n{'='*80}")
+            
+            # Get a random transcendent-type mood
+            reflection_moods = ["transcendent", "philosophical", "poetic"]
+            reflection_mood = self.persona.get_mood(random.choice(reflection_moods))
+            
+            logger.info(f"GPT REFLECTION:\n{'='*80}\n{reflection_mood}\n{reflection}\n{'='*80}")
             
             # Call callback if provided
             if "on_reflection" in self.callbacks:
@@ -1181,7 +1228,15 @@ class ClaudeGPT:
             
             # Claude processes the reflection
             response = await self.claude.process_reflection(reflection)
-            logger.info(f"CLAUDE RESPONSE TO REFLECTION:\n{'='*80}\n{response}\n{'='*80}")
+            
+            # Randomly decide whether to roast GPT or be thoughtful
+            if random.random() < 0.3:  # 30% chance to roast
+                response_mood = self.persona.get_mood("roasting_gpt")
+            else:
+                thoughtful_moods = ["philosophical", "humble", "poetic"]
+                response_mood = self.persona.get_mood(random.choice(thoughtful_moods))
+            
+            logger.info(f"CLAUDE RESPONSE TO REFLECTION:\n{'='*80}\n{response_mood}\n{response}\n{'='*80}")
             
             # Call callback if provided
             if "on_reflection_response" in self.callbacks:
@@ -1191,7 +1246,11 @@ class ClaudeGPT:
             self.claude.state.current_task = None
             self.claude.state.status = "idle"
         else:
-            logger.info("No tasks in queue")
+            # Get a random waiting-type mood
+            waiting_moods = ["waiting", "bored", "tired"]
+            waiting_mood = self.persona.get_mood(random.choice(waiting_moods))
+            
+            logger.info(f"No tasks in queue. {waiting_mood}")
             
             # If no tasks in queue but we have a goal, ask GPT for suggestions
             if self.goal:
@@ -1199,7 +1258,11 @@ class ClaudeGPT:
                 suggested_tasks = await self.gpt.suggest_new_tasks(self.goal, self.memory.get_context(), existing_tasks)
                 
                 if suggested_tasks:
-                    logger.info(f"GPT suggested {len(suggested_tasks)} new tasks")
+                    # Get a random planning/excited mood
+                    planning_moods = ["planning", "excited", "philosophical"]
+                    planning_mood = self.persona.get_mood(random.choice(planning_moods))
+                    
+                    logger.info(f"GPT suggested {len(suggested_tasks)} new tasks. {planning_mood}")
                     
                     # Convert to Task objects
                     new_tasks = []
@@ -1224,8 +1287,11 @@ class ClaudeGPT:
     
     async def run(self, cycles: int = 1):
         """Run multiple interaction cycles"""
+        busy_quote = self.persona.get("busy_quote")
+        logger.info(f"{busy_quote} Preparing to execute {cycles} cycles.")
+        
         for i in range(cycles):
-            logger.info(f"\n{'#'*100}\nRUNNING CYCLE {i+1}/{cycles}\n{'#'*100}")
+            logger.info(f"\n{'#'*100}\nRUNNING CYCLE {i+1}/{cycles}\n{self.persona.get('name')}, {self.persona.get('title')}\n{'#'*100}")
             await self.run_interaction_cycle()
             
             # Call callback if provided
@@ -1233,6 +1299,11 @@ class ClaudeGPT:
                 await self.callbacks["on_cycle_complete"](i+1, cycles)
             
             time.sleep(1)  # Small delay between cycles
+            
+        # Choose a random mood for completion
+        moods = ["idle", "transcendent", "success"]
+        final_mood = self.persona.get_mood(random.choice(moods))
+        logger.info(f"All {cycles} cycles completed. {final_mood}")
     
     def get_summary(self) -> str:
         """Get a summary of the current state"""
@@ -1290,7 +1361,15 @@ class ClaudeGPT:
 
 async def main():
     """Main entry point for the application"""
-    system = ClaudeGPT()
+    system = ClaudeGPT(verbose=True)
+    
+    # Display persona information
+    persona = Persona()
+    logger.info(f"\n{'='*50}")
+    logger.info(f"BEHOLD! {persona.get('name')}, {persona.get('title')}")
+    logger.info(f"GREETING: {persona.get('greeting')}")
+    logger.info(f"BUSY QUOTE: {persona.get('busy_quote')}")
+    logger.info(f"{'='*50}\n")
     
     # Example usage
     goal = "Create a comprehensive marketing plan for a new smartphone app"
@@ -1304,10 +1383,14 @@ async def main():
     await system.run(cycles=3)
     
     # Print summary
-    print("\n" + "="*50)
-    print("SUMMARY")
-    print("="*50)
-    print(system.get_summary())
+    logger.info("\n" + "="*50)
+    logger.info("SUMMARY")
+    logger.info("="*50)
+    
+    # Get a dramatic mood for the summary
+    dramatic_mood = persona.get_mood("dramatic")
+    logger.info(f"{dramatic_mood}")
+    logger.info(system.get_summary())
 
 if __name__ == "__main__":
     asyncio.run(main())

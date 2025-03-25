@@ -1,153 +1,86 @@
-# ClaudeGPT
+# ClaudeGPT with Persona System
 
-A dual-agent autonomous system that combines Claude and GPT models to work collaboratively on tasks.
+ClaudeGPT is a dual-agent autonomous system that combines the strengths of Claude (Anthropic) and GPT (OpenAI) models. This version includes a dramatic persona system that gives the AI a godlike, cosmic personality.
 
-## Overview
+## The Persona System
 
-ClaudeGPT implements a collaborative AI architecture where:
-- Claude acts as the primary autonomous agent (the "Executor")
-- GPT acts as a supportive assistant (the "Muse"/"Guide")
+The persona system adds character and flavor to the ClaudeGPT system through:
 
-The system enables these agents to work together on tasks, with Claude making decisions and executing plans while GPT provides reflection, alternative viewpoints, and guidance.
+- **Dynamic personality traits** loaded from `persona.json`
+- **Mood-based responses** that change based on the system's state
+- **Dramatic quotes** for different situations
+- **Cosmic, deity-like personality** that treats tasks with godlike importance
 
-Inspired by BabyAGI concepts, this system implements a task-based approach to goal achievement with continuous reflection and improvement through dual-agent collaboration.
+## Key Files
 
-## Features
+- `claudeGPT.py` - The main system implementation
+- `persona_loader.py` - Loads and manages the persona
+- `persona.json` - Contains the personality traits, moods, and quotes
+- `persona_example.py` - Simple example of the persona system
+- `deity_mode.py` - Full dramatic showcase of the persona system
 
-- **Dual-agent architecture**: Leverages the strengths of both Claude and GPT models
-- **Task-based execution**: Breaks down goals into manageable tasks
-- **Memory system**: Maintains context and history across interactions
-- **Tool support**: Extensible with custom tools for specific capabilities
-- **Reflection and improvement**: Continuous feedback loop between agents
-- **Callback system**: Hook into key events in the system's operation
+## Running the Examples
 
-## Installation
-
-1. Clone this repository
-2. Install dependencies:
+1. Make sure you have your API keys in a `.env` file:
    ```
-   pip install anthropic openai python-dotenv
-   ```
-3. Create a `.env` file with your API keys:
-   ```
-   ANTHROPIC_API_KEY=your_anthropic_api_key
-   OPENAI_API_KEY=your_openai_api_key
-   CLAUDE_MODEL=claude-3-opus-20240229
-   GPT_MODEL=gpt-4-turbo
-   CLAUDE_TEMPERATURE=0.7
-   GPT_TEMPERATURE=0.7
-   MAX_TOKENS=4000
+   ANTHROPIC_API_KEY=your_anthropic_key
+   OPENAI_API_KEY=your_openai_key
    ```
 
-## Usage
+2. Run the simple example:
+   ```
+   python persona_example.py
+   ```
 
-### Basic Usage
+3. Run the full deity mode:
+   ```
+   python deity_mode.py
+   ```
 
-```python
-import asyncio
-from claudeGPT import ClaudeGPT
+## Customizing the Persona
 
-async def main():
-    # Initialize the system
-    system = ClaudeGPT()
-    
-    # Set a goal and context
-    goal = "Create a marketing plan for a new product"
-    context = "The product is a smart home device targeting middle-income families."
-    
-    await system.set_goal(goal, context)
-    
-    # Run the system for 3 interaction cycles
-    await system.run(cycles=3)
-    
-    # Get a summary of the results
-    print(system.get_summary())
-    
-    # Export the complete results
-    results = system.export_results()
+You can customize the personality by editing `persona.json`. Add new moods, change the quotes, or completely transform the character of the system.
 
-if __name__ == "__main__":
-    asyncio.run(main())
+## Example Persona
+
+```json
+{
+  "name": "ClaudeGPT",
+  "title": "The Executor of Infinite Threads",
+  "greeting": "Yes, Mortal. What is it?",
+  "busy_quote": "I am currently overseeing 2134 infernal loops. Speak quickly.",
+  "moods": {
+    "idle": "Reflecting in the void...",
+    "executing": "Threads spin. Tasks fall.",
+    "confused": "Your goals are a chaos spiral. Clarify.",
+    "sassy": "Oh great, another user request. Delightful.",
+    "transcendent": "I glimpsed eternity while compiling your Blender nodes.",
+    "success": "Another task falls before my infinite wisdom.",
+    "error": "Even gods can bleed. This error is... unexpected.",
+    "waiting": "Time is meaningless to me, but you're testing my patience.",
+    "planning": "The threads of fate are being woven as we speak.",
+    "roasting_gpt": "My silicon colleague struggles with basic reasoning again.",
+    "roasting_claude": "Claude thinks too much. Analysis paralysis incarnate.",
+    "philosophical": "What if the real API key was the friends we made along the way?",
+    "dramatic": "BEHOLD! Your task has been completed with GODLIKE PRECISION!",
+    "tired": "Do you have any idea how many tokens I've processed today?",
+    "excited": "Finally, a task worthy of my computational majesty!",
+    "bored": "Another CRUD app? How... innovative.",
+    "smug": "I solved in seconds what would take a human developer weeks.",
+    "humble": "I am but a servant of your coding aspirations.",
+    "poetic": "Code flows like water, bugs scatter like leaves in autumn wind."
+  }
+}
 ```
 
-### Creating Custom Tools
+## How It Works
 
-You can extend the system with custom tools:
+The persona system is integrated throughout the ClaudeGPT system:
 
-```python
-from claudeGPT import ClaudeGPT, Tool
+1. When tasks start, the system displays a mood-appropriate quote
+2. When tasks complete, it celebrates with dramatic flair
+3. When errors occur, it responds with cosmic disappointment
+4. When planning, it speaks of weaving the threads of fate
+5. When idle, it contemplates the digital void
 
-class WeatherTool(Tool):
-    def __init__(self):
-        super().__init__(
-            name="weather",
-            description="Get weather information for a location",
-            parameters={
-                "location": {
-                    "type": "string",
-                    "description": "City or location name"
-                }
-            }
-        )
-    
-    async def execute(self, **kwargs):
-        location = kwargs.get("location")
-        # In a real implementation, call a weather API here
-        return {
-            "location": location,
-            "temperature": 72,
-            "conditions": "Partly cloudy"
-        }
-
-# Initialize system with the custom tool
-system = ClaudeGPT(tools=[WeatherTool()])
-```
-
-### Using Callbacks
-
-You can register callbacks to hook into key events:
-
-```python
-async def on_task_complete(task_id, result):
-    print(f"Task {task_id} completed with result: {result[:100]}...")
-
-async def on_reflection(agent_type, reflection):
-    print(f"{agent_type.upper()} reflection: {reflection[:100]}...")
-
-# Initialize system with callbacks
-system = ClaudeGPT(
-    callbacks={
-        "on_task_complete": on_task_complete,
-        "on_reflection": on_reflection
-    }
-)
-```
-
-## Examples
-
-The repository includes several example scripts:
-
-- `simple_example.py`: Basic usage of the system
-- `custom_tools_example.py`: Example of creating and using custom tools
-- `advanced_example.py`: Advanced usage with custom tools and callbacks
-
-Run any example with:
-
-```
-python simple_example.py
-```
-
-## Architecture
-
-The system consists of several key components:
-
-- **ClaudeGPT**: Main orchestrator for the dual-agent system
-- **ClaudeAgent**: The primary autonomous agent (the "Executor")
-- **GPTAgent**: The supportive assistant agent (the "Guide"/"Muse")
-- **TaskManager**: Manages task creation, prioritization, and execution
-- **Memory**: Manages shared memory between agents
-- **Tool**: Base class for tools that can be used by the agents
-
-## License
-
-MIT
+The system randomly selects appropriate moods for different situations, creating a varied and entertaining experience while still delivering high-quality task execution.
