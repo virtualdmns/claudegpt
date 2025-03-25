@@ -1,4 +1,4 @@
-# ClaudeGPT with Persona System
+# ClaudeGPT
 
 ClaudeGPT is a dual-agent autonomous system that combines the strengths of Claude (Anthropic) and GPT (OpenAI) models. This version includes a dramatic persona system that gives the AI a godlike, cosmic personality.
 
